@@ -49,7 +49,7 @@
     <nav class="tabs" role="tablist" aria-label="Vues">
       <a href="#tableau" role="tab" data-v="board">Tableau</a>
       <a href="#liste" role="tab" data-v="list">Liste</a>
-      <a href="#exigences" role="tab" data-v="ex">Exigences</a>
+      <a href="#exigences" role="tab" data-v="ex">Cahier des charges</a>
       <a href="#journal" role="tab" data-v="journal">Journal des retours</a>
     </nav>
     <div class="me">
@@ -75,7 +75,7 @@
     <div class="legendbody">
       <p>Les <b>cartes</b> (C1, T1, D1…) sont les <b>cas de test</b> à dérouler : chacune décrit une action à réaliser et le résultat attendu. Elles viennent du <b>plan de recette</b> préparé par Be-Cloud — ce ne sont pas les intitulés du cahier des charges.</p>
       <p>Les <b>colonnes</b> suivent l'avancement de chaque cas : À tester → En cours → Validé, ou Anomalie → Corrigé – à retester. Glissez une carte ou ouvrez-la pour changer son statut et commenter.</p>
-      <p>Sur chaque carte, les étiquettes <span class="tag exr">EX-000</span> sont les <b>exigences du cahier des charges</b> que ce cas permet de vérifier. L'onglet <b>Exigences</b> liste les 94 exigences du CdC avec leur statut : c'est la vue « cahier des charges ».</p>
+      <p>Sur chaque carte, les étiquettes <span class="tag exr">EX-000</span> sont les <b>exigences du cahier des charges</b> que ce cas permet de vérifier. L'onglet <b>Cahier des charges</b> reprend les 94 exigences du CdC, leur statut et les cas qui les testent : c'est la vue « besoin client ».</p>
       <ul class="legend-fams" aria-label="Familles de cas de test">
         <li><b>C</b> Création du contrat</li>
         <li><b>T</b> Tickets</li>
@@ -95,6 +95,8 @@
         <nav class="ex-toc" id="exToc" aria-label="Sommaire"></nav>
         <div class="ex-main">
           <div class="doc-head"><h1 id="docTitle"></h1><p class="muted" id="docSub"></p><div class="intro" id="docIntro"></div></div>
+          <div class="coverbar" id="exCoverage"></div>
+          <details class="exlegend" id="exStatusLegend"><summary>Que veulent dire les statuts ?</summary><div class="exlegend-body" id="exStatusLegendBody"></div></details>
           <div class="chips" id="exFilters" role="group" aria-label="Filtrer par statut"></div>
           <div id="exBody"></div>
         </div>

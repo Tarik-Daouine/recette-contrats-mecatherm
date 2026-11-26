@@ -359,16 +359,27 @@ function buildEx() {
     rows.forEach((r, k) => { const s = mk("div", "stat" + (k === rows.length - 1 ? " hot" : "")); s.append(mk("b", null, r.cells[1].textContent), mk("span", null, r.cells[0].textContent)); d.appendChild(s); });
     syn.closest(".tw").replaceWith(d);
   }
-  // colonne retour
+  // cas de test cliquables (colonne « Test ») + colonne retour
   body.querySelectorAll("table").forEach(t => {
     if (!t.querySelector("tr[data-ex]")) return;
+    const heads = [...t.querySelectorAll("thead th")].map(h => h.textContent.trim().toLowerCase());
+    const ti = heads.indexOf("test");
     t.querySelector("thead tr").appendChild(mk("th", null, "Retour"));
     t.querySelectorAll("tbody tr").forEach(r => {
+      const ex = r.dataset.ex, row = EXI[ex];
+      if (ex && ti >= 0 && r.cells[ti] && row && row.cas.length) {
+        const cell = r.cells[ti]; cell.replaceChildren(); cell.classList.add("casecell");
+        row.cas.forEach(c => { const a = mk("a", "tag casechip", c); a.href = "#"; a.dataset.case = c; a.addEventListener("click", e => { e.preventDefault(); openDrawer(c); }); cell.appendChild(a); });
+      }
       const td = mk("td", "rcell");
-      if (r.dataset.ex) { const s = mk("span"); s.dataset.badge = r.dataset.ex; const b = mk("button", "btn sec sm", "Retour"); b.type = "button"; b.addEventListener("click", () => openExDlg(r.dataset.ex)); td.append(s, b); }
+      if (ex) { const s = mk("span"); s.dataset.badge = ex; const b = mk("button", "btn sec sm", "Retour"); b.type = "button"; b.addEventListener("click", () => openExDlg(ex)); td.append(s, b); }
       r.appendChild(td);
     });
   });
+  // légende des statuts
+  const SL = [["Fait", "en place et vérifié par Be-Cloud"], ["Adapté", "réalisé selon une décision validée, différente de la lettre du cahier des charges"], ["Partiel", "réalisé en partie, le reste est indiqué"], ["V2", "reporté à une version ultérieure, à la demande de Mecatherm"], ["Attente", "attend une décision ou un contenu de Mecatherm"], ["Recette", "à vérifier pendant vos tests"]];
+  const slb = $("exStatusLegendBody");
+  SL.forEach(([cls, txt]) => { const row = mk("div", "sl-row"); row.append(mk("span", "st " + cls, EXF.find(f => f[0] === cls) ? EXF.find(f => f[0] === cls)[1] : cls), mk("span", null, txt)); slb.appendChild(row); });
   const fl = $("exFilters");
   for (const [v, l] of EXF) {
     const b = mk("button", null, l); b.type = "button"; b.setAttribute("aria-pressed", String(v === exFilter));
@@ -390,7 +401,31 @@ function renderExBadges() {
     const open = mine.filter(isOpen).length, last = mine[mine.length - 1];
     s.appendChild(open ? tag("anomalie", open + " ouverte" + (open > 1 ? "s" : "")) : tag(etatOf(last) || last.statut, (ETAT[etatOf(last)] || KIND[last.statut]) + (mine.length > 1 ? " · " + mine.length : "")));
   });
+  updateExCaseChips();
+  renderExCoverage();
   if (exFilter === "retour") applyExFilter();
+}
+const CASECLASS = { atester: "", encours: "encours", ok: "ok", anomalie: "anomalie", corrige: "corrige" };
+function updateExCaseChips() {
+  document.querySelectorAll("#exBody a.casechip").forEach(a => {
+    const col = colOf(a.dataset.case); a.className = "tag casechip " + (CASECLASS[col] || "");
+    const t = TC.find(x => x.c === a.dataset.case);
+    a.title = (t ? t.t + " — " : "") + "Statut : " + (COL[col] ? COL[col].lbl : col);
+  });
+}
+function renderExCoverage() {
+  const host = $("exCoverage"); if (!host) return;
+  const n = Object.fromEntries(COLS.map(c => [c[0], 0])); TC.forEach(t => n[colOf(t.c)]++);
+  const stc = {}; EXS.forEach(e => { stc[e.st] = (stc[e.st] || 0) + 1; });
+  const ex = mk("div", "cover-part");
+  ex.append(mk("b", null, String(EXS.length)), mk("span", null, "exigences du cahier des charges"));
+  const made = (stc.Fait || 0) + (stc.Adapté || 0);
+  ex.append(mk("span", "cover-sep", "·"), mk("span", null, made + " en place, " + (stc.Partiel || 0) + " partielles, " + (stc.Recette || 0) + " à vérifier, " + ((stc.V2 || 0) + (stc.Attente || 0)) + " à statuer"));
+  const rec = mk("div", "cover-part");
+  rec.append(mk("b", null, n.ok + " / " + TC.length), mk("span", null, "cas validés en recette"));
+  if (n.anomalie) rec.append(mk("span", "cover-sep", "·"), tag("anomalie", n.anomalie + " en anomalie"));
+  if (n.atester) rec.append(mk("span", "cover-sep", "·"), mk("span", null, n.atester + " à tester"));
+  host.replaceChildren(ex, rec);
 }
 function gotoEx(ex) {
   setView("ex"); exFilter = ""; $("exFilters").querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-pressed", String(i === 0))); applyExFilter();
