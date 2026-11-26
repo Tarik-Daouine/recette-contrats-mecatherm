@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recette · Contrats de services Mecatherm</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="styles.css">
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="app.js" defer></script>
+</head>
+<body>
+
+<!-- Connexion -->
+<div class="gate" id="gate" hidden>
+  <form class="gate-card" id="loginForm" novalidate>
+    <div class="brand"><span class="logo">BC</span><span>Be-Cloud</span></div>
+    <h1>Recette des contrats de services</h1>
+    <p class="muted">Espace de suivi des tests Mecatherm. Accès sur invitation de Be-Cloud.</p>
+    <label class="fld">Adresse e-mail<input type="email" id="lEmail" autocomplete="username" required></label>
+    <label class="fld">Mot de passe<input type="password" id="lPwd" autocomplete="current-password" required></label>
+    <div class="err" id="lErr" role="alert"></div>
+    <button class="btn" type="submit" id="lBtn">Se connecter</button>
+  </form>
+  <form class="gate-card" id="nameForm" hidden novalidate>
+    <div class="brand"><span class="logo">BC</span><span>Be-Cloud</span></div>
+    <h1>Votre nom</h1>
+    <p class="muted">Il apparaît à côté de chacun de vos commentaires et déplacements.</p>
+    <label class="fld">Prénom et nom<input id="nName" maxlength="80" autocomplete="name" required></label>
+    <div class="err" id="nErr" role="alert"></div>
+    <button class="btn" type="submit">Continuer</button>
+  </form>
+</div>
+
+<!-- Application -->
+<div class="app" id="app" hidden>
+  <header class="top">
+    <div class="proj">
+      <span class="logo">BC</span>
+      <div class="proj-t"><div class="eyebrow">Mecatherm · Contrats de services</div><div class="proj-n">Recette v2</div></div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Vues">
+      <a href="#tableau" role="tab" data-v="board">Tableau</a>
+      <a href="#liste" role="tab" data-v="list">Liste</a>
+      <a href="#exigences" role="tab" data-v="ex">Exigences</a>
+      <a href="#journal" role="tab" data-v="journal">Journal des retours</a>
+    </nav>
+    <div class="me">
+      <span class="live" id="live" title="Mises à jour en direct">En direct</span>
+      <button class="av-btn" id="meBtn" type="button" aria-haspopup="menu" aria-expanded="false"><span class="av" id="meAv"></span></button>
+      <div class="menu" id="meMenu" role="menu" hidden>
+        <div class="menu-h"><b id="meName"></b><span id="meMail"></span><span id="meRole"></span></div>
+        <button type="button" role="menuitem" id="mPwd">Changer mon mot de passe</button>
+        <button type="button" role="menuitem" id="mOut">Se déconnecter</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="progress" id="progress" aria-label="Avancement de la recette"></div>
+
+  <div class="toolbar" id="toolbar">
+    <input type="search" id="q" placeholder="Rechercher un cas, une exigence, un mot…" aria-label="Rechercher">
+    <select id="grp" aria-label="Filtrer par thème"><option value="">Tous les thèmes</option></select>
+    <label class="chk"><input type="checkbox" id="onlyOpen"> Anomalies ouvertes</label>
+  </div>
+
+  <main>
+    <section class="view" id="v-board" aria-label="Tableau"><div class="board" id="board"></div></section>
+    <section class="view" id="v-list" aria-label="Liste" hidden><div id="list"></div></section>
+    <section class="view" id="v-ex" aria-label="Exigences" hidden>
+      <div class="ex-layout">
+        <nav class="ex-toc" id="exToc" aria-label="Sommaire"></nav>
+        <div class="ex-main">
+          <div class="doc-head"><h1 id="docTitle"></h1><p class="muted" id="docSub"></p><div class="intro" id="docIntro"></div></div>
+          <div class="chips" id="exFilters" role="group" aria-label="Filtrer par statut"></div>
+          <div id="exBody"></div>
+        </div>
+      </div>
+    </section>
+    <section class="view" id="v-journal" aria-label="Journal des retours" hidden>
+      <div class="j-head">
+        <h2>Journal des retours</h2>
+        <div class="j-acts"><button class="btn sec" type="button" id="jNew">Nouveau retour</button><button class="btn sec" type="button" id="jCsv">Exporter (CSV)</button></div>
+      </div>
+      <div class="stats" id="jStats"></div>
+      <div class="chips" id="jFilters" role="group" aria-label="Filtrer les retours"></div>
+      <div class="feed" id="jList"></div>
+    </section>
+  </main>
+</div>
+
+<!-- Panneau d'un cas de test -->
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" aria-labelledby="dTitle" hidden>
+  <div class="d-top">
+    <label class="pill-sel"><span class="dot" id="dDot"></span><select id="dCol" aria-label="Statut du cas"></select></label>
+    <button class="icon-btn" type="button" id="dClose" aria-label="Fermer">✕</button>
+  </div>
+  <div class="d-scroll" id="dScroll">
+    <div class="d-code" id="dCode"></div>
+    <h2 id="dTitle"></h2>
+    <dl class="d-meta">
+      <dt>Thème</dt><dd id="dGrp"></dd>
+      <dt>Exigences</dt><dd id="dEx"></dd>
+      <dt>Dernière activité</dt><dd id="dLast"></dd>
+    </dl>
+    <h3>Action</h3><p id="dAct"></p>
+    <h3>Résultat attendu</h3><p id="dAtt"></p>
+    <h3>Activité</h3>
+    <div class="timeline" id="dFeed"></div>
+  </div>
+  <form class="composer" id="dForm" novalidate>
+    <div class="seg" id="dKind">
+      <label><input type="radio" name="dk" value="remarque" checked><span>Commentaire</span></label>
+      <label><input type="radio" name="dk" value="anomalie"><span>Anomalie</span></label>
+      <label><input type="radio" name="dk" value="question"><span>Question</span></label>
+      <label><input type="radio" name="dk" value="ok"><span>Conforme</span></label>
+    </div>
+    <select id="dGrav" hidden aria-label="Gravité"><option value="bloquante">Bloquante</option><option value="majeure" selected>Majeure</option><option value="mineure">Mineure</option></select>
+    <textarea id="dCom" maxlength="4000" placeholder="Ce que vous avez fait, ce qui était attendu, ce qui s'est passé…" aria-label="Commentaire"></textarea>
+    <div class="c-row">
+      <label class="file"><input type="file" id="dCap" accept="image/*"><span id="dCapL">📎 Joindre une capture</span></label>
+      <button class="btn" type="submit" id="dOk">Publier</button>
+    </div>
+    <div class="err" id="dErr" role="alert"></div>
+  </form>
+</aside>
+
+<!-- Retour sur une exigence -->
+<dialog id="exDlg" aria-labelledby="xTitle"><form id="xForm" novalidate>
+  <h3 id="xTitle">Retour</h3>
+  <p class="muted" id="xLib"></p>
+  <label class="fld">Exigence<select id="xEx"></select></label>
+  <label class="fld">Cas de test<select id="xCas"></select></label>
+  <div class="fld">Résultat<div class="seg" id="xKind">
+    <label><input type="radio" name="xk" value="ok"><span>Conforme</span></label>
+    <label><input type="radio" name="xk" value="anomalie"><span>Anomalie</span></label>
+    <label><input type="radio" name="xk" value="question"><span>Question</span></label>
+    <label><input type="radio" name="xk" value="remarque" checked><span>Commentaire</span></label>
+  </div></div>
+  <label class="fld" id="xGravL" hidden>Gravité<select id="xGrav"><option value="bloquante">Bloquante</option><option value="majeure" selected>Majeure</option><option value="mineure">Mineure</option></select></label>
+  <label class="fld">Commentaire<textarea id="xCom" maxlength="4000"></textarea></label>
+  <label class="fld">Capture d'écran (facultatif)<input type="file" id="xCap" accept="image/*"></label>
+  <div class="err" id="xErr" role="alert"></div>
+  <div class="acts"><button class="btn sec" type="button" id="xCancel">Annuler</button><button class="btn" type="submit" id="xOk">Enregistrer</button></div>
+</form></dialog>
+
+<!-- Mot de passe -->
+<dialog id="pwDlg" aria-labelledby="pwT"><form id="pwForm" novalidate>
+  <h3 id="pwT">Changer mon mot de passe</h3>
+  <label class="fld">Nouveau mot de passe (10 caractères minimum)<input type="password" id="pw1" autocomplete="new-password" minlength="10"></label>
+  <label class="fld">Confirmer<input type="password" id="pw2" autocomplete="new-password" minlength="10"></label>
+  <div class="err" id="pwErr" role="alert"></div>
+  <div class="acts"><button class="btn sec" type="button" id="pwCancel">Annuler</button><button class="btn" type="submit">Enregistrer</button></div>
+</form></dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
