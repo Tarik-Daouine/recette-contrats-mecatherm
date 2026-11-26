@@ -112,6 +112,19 @@ a.tag:hover{filter:brightness(.95)}
 .chk{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--muted);cursor:pointer}
 main{padding:0 20px 40px}
 
+/* légende */
+.legendbox{margin:0 20px 4px;background:var(--accent-soft);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.legendbox>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:10px 14px;font:600 14px var(--display);color:var(--accent)}
+.legendbox>summary::-webkit-details-marker{display:none}
+.legendbox>summary::before{content:"\24d8";font-size:16px;line-height:1}
+.legendbox>summary::after{content:"\25b8";margin-left:auto;color:var(--muted);transition:transform .15s}
+.legendbox[open]>summary::after{transform:rotate(90deg)}
+.legendbody{padding:2px 14px 12px;font-size:13.5px}
+.legendbody p{margin:6px 0;max-width:95ch}
+.legend-fams{list-style:none;display:flex;flex-wrap:wrap;gap:8px 18px;padding:8px 0 0;margin:0}
+.legend-fams li{display:flex;align-items:center;font-size:13px}
+.legend-fams b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:5px;background:var(--accent);color:var(--accent-ink);font:700 12px var(--mono);margin-right:7px}
+
 /* tableau */
 .board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(260px,1fr);gap:14px;overflow-x:auto;padding-bottom:10px;align-items:start}
 .col{background:var(--sunk);border-radius:12px;display:flex;flex-direction:column;max-height:calc(100vh - 230px);min-height:160px;border:1px solid transparent}
@@ -240,6 +253,7 @@ dialog p{margin:0}
   .live{display:none}
   .progress,.toolbar{padding-left:16px;padding-right:16px}
   main{padding:0 16px 32px}
+  .legendbox{margin-left:16px;margin-right:16px}
   .ex-layout{grid-template-columns:minmax(0,1fr)}
   .ex-toc{display:none}
   .chips{top:100px}

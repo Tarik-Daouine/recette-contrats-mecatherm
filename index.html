@@ -70,6 +70,23 @@
     <label class="chk"><input type="checkbox" id="onlyOpen"> Anomalies ouvertes</label>
   </div>
 
+  <details class="legendbox" id="legendBox">
+    <summary>Comment lire cette page</summary>
+    <div class="legendbody">
+      <p>Les <b>cartes</b> (C1, T1, D1…) sont les <b>cas de test</b> à dérouler : chacune décrit une action à réaliser et le résultat attendu. Elles viennent du <b>plan de recette</b> préparé par Be-Cloud — ce ne sont pas les intitulés du cahier des charges.</p>
+      <p>Les <b>colonnes</b> suivent l'avancement de chaque cas : À tester → En cours → Validé, ou Anomalie → Corrigé – à retester. Glissez une carte ou ouvrez-la pour changer son statut et commenter.</p>
+      <p>Sur chaque carte, les étiquettes <span class="tag exr">EX-000</span> sont les <b>exigences du cahier des charges</b> que ce cas permet de vérifier. L'onglet <b>Exigences</b> liste les 94 exigences du CdC avec leur statut : c'est la vue « cahier des charges ».</p>
+      <ul class="legend-fams" aria-label="Familles de cas de test">
+        <li><b>C</b> Création du contrat</li>
+        <li><b>T</b> Tickets</li>
+        <li><b>D</b> Décompte &amp; mouvements</li>
+        <li><b>V</b> Cycle de vie</li>
+        <li><b>A</b> Alertes</li>
+        <li><b>P</b> Vues &amp; pilotage</li>
+      </ul>
+    </div>
+  </details>
+
   <main>
     <section class="view" id="v-board" aria-label="Tableau"><div class="board" id="board"></div></section>
     <section class="view" id="v-list" aria-label="Liste" hidden><div id="list"></div></section>

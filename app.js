@@ -476,6 +476,7 @@ function setView(v) {
   document.querySelectorAll(".tabs a").forEach(a => a.setAttribute("aria-selected", String(a.dataset.v === v)));
   ["board", "list", "ex", "journal"].forEach(k => { $("v-" + k).hidden = k !== v; });
   $("toolbar").hidden = v === "ex";
+  if ($("legendBox")) $("legendBox").hidden = !(v === "board" || v === "list");
   store.set("recette-view", v);
   renderView();
 }
@@ -493,6 +494,7 @@ $("q").addEventListener("input", e => { q = e.target.value; renderView(); });
 [...new Set(TC.map(t => t.g))].forEach(g => { const o = mk("option", null, g); o.value = g; $("grp").appendChild(o); });
 $("grp").addEventListener("change", e => { grp = e.target.value; renderView(); });
 $("onlyOpen").addEventListener("change", e => { onlyOpen = e.target.checked; renderView(); });
+{ const lb = $("legendBox"); if (lb) { lb.open = store.get("recette-legend") !== "0"; lb.addEventListener("toggle", () => store.set("recette-legend", lb.open ? "1" : "0")); } }
 
 /* ---------- compte ---------- */
 $("meBtn").addEventListener("click", () => { const m = $("meMenu"); m.hidden = !m.hidden; $("meBtn").setAttribute("aria-expanded", String(!m.hidden)); });
