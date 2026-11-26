@@ -536,32 +536,84 @@ $("meBtn").addEventListener("click", () => { const m = $("meMenu"); m.hidden = !
 document.addEventListener("click", e => { if (!$("meMenu").hidden && !e.target.closest(".me")) { $("meMenu").hidden = true; $("meBtn").setAttribute("aria-expanded", "false"); } });
 $("mOut").addEventListener("click", async () => { await api.signOut(); location.hash = ""; location.reload(); });
 
-/* ---------- tutoriel d'accueil ---------- */
+/* ---------- tutoriel interactif (guidage pas à pas) ---------- */
+const firstCas = () => { const c = document.querySelector("#board .card"); return c ? c.dataset.cas : (TC[0] && TC[0].c); };
 const TOUR = [
-  { ico: "👋", t: "Bienvenue", x: "Cet espace sert à tester la gestion des contrats de services et à nous remonter vos retours. 1 minute pour tout comprendre." },
-  { ico: "🗂️", t: "Le tableau", x: "Chaque carte est un cas à tester (C1, T1, D1…). Les colonnes suivent l'avancement : À tester, En cours, Validé, Anomalie. Glissez une carte d'une colonne à l'autre." },
-  { ico: "📝", t: "Tester un cas", x: "Ouvrez une carte : vous y voyez l'action à faire et le résultat attendu, puis vous publiez votre retour — Conforme, Anomalie ou Question — avec une capture si besoin." },
-  { ico: "📘", t: "Cahier des charges", x: "L'onglet Cahier des charges reprend votre besoin, exigence par exigence, avec son statut et les cas de test qui la vérifient." },
-  { ico: "💬", t: "Vos retours sont gardés", x: "Tout ce que vous notez est enregistré dans le Journal des retours, et Be-Cloud vous y répond. Rien ne se perd. C'est parti !" }
+  { t: "Petit tour guidé", x: "Je vous guide pas à pas, comme un mode d'emploi. L'élément à utiliser est surligné : c'est vous qui faites l'action pour avancer. Vous pouvez quitter à tout moment.", view: "board" },
+  { t: "Ouvrez un cas à tester", x: "Chaque carte est un cas à vérifier. Cliquez sur celle qui est surlignée pour l'ouvrir.", view: "board", sel: "#board .card", act: "click", hint: "Cliquez sur la carte" },
+  { t: "Dites ce que ça donne", x: "Après avoir testé, indiquez le résultat. Choisissez par exemple « Anomalie » si quelque chose cloche, ou « Conforme » si tout va bien.", enter: tourOpenCard, sel: "#dKind", act: "change", hint: "Choisissez un résultat" },
+  { t: "Décrivez votre retour", x: "Écrivez ici ce que vous avez fait, ce qui était attendu et ce qui s'est passé. Une capture d'écran est possible. Vous cliquerez « Publier » quand c'est prêt — pas besoin maintenant.", sel: "#dCom", act: "click", hint: "Cliquez dans la zone de texte" },
+  { t: "Allez au cahier des charges", x: "On ferme la fiche. Cliquez maintenant sur l'onglet « Cahier des charges » en haut.", enter: tourCloseCard, sel: '.tabs a[data-v="ex"]', act: "click", hint: "Cliquez sur l'onglet" },
+  { t: "Votre besoin, point par point", x: "Chaque exigence de votre cahier des charges est ici, avec son statut et les cas de test qui la vérifient (cliquables). C'est la preuve que votre besoin est couvert.", view: "ex", sel: ".coverbar" },
+  { t: "Le journal des retours", x: "Dernier onglet : cliquez sur « Journal des retours ».", sel: '.tabs a[data-v="journal"]', act: "click", hint: "Cliquez sur l'onglet" },
+  { t: "Tout est gardé", x: "Tous vos retours arrivent ici et Be-Cloud vous répond. Rien ne se perd. Vous êtes prêt à tester !", view: "journal" }
 ];
-let tstep = 0;
-function renderTour() {
-  const s = TOUR[tstep];
-  $("tourIco").textContent = s.ico; $("tourTitle").textContent = s.t; $("tourText").textContent = s.x;
+function tourOpenCard() { if ($("drawer").hidden) { setView("board"); openDrawer(firstCas()); } }
+function tourCloseCard() { if (!$("drawer").hidden) closeDrawer(); }
+let tstep = 0, tourOn = false, tourAct = null, tourTimer = null;
+function tourDetach() { if (tourAct) { try { tourAct.el.removeEventListener(tourAct.ev, tourAct.fn); } catch (e) {} tourAct = null; } }
+function tourPos() {
+  const st = TOUR[tstep], tip = $("tourTip"), spot = $("tourSpot"), dim = $("tourDim");
+  const el = st.sel ? document.querySelector(st.sel) : null;
+  if (!el) {
+    spot.hidden = true; dim.hidden = false;
+    tip.style.left = "50%"; tip.style.top = "50%"; tip.style.transform = "translate(-50%,-50%)";
+    return;
+  }
+  dim.hidden = true; spot.hidden = false; tip.style.transform = "none";
+  const r = el.getBoundingClientRect(), pad = 7;
+  spot.style.top = Math.max(6, r.top - pad) + "px"; spot.style.left = Math.max(6, r.left - pad) + "px";
+  spot.style.width = Math.min(r.width + pad * 2, innerWidth - 12) + "px"; spot.style.height = r.height + pad * 2 + "px";
+  const tipH = tip.offsetHeight || 190, tipW = tip.offsetWidth || 320, vw = innerWidth, vh = innerHeight;
+  let ty = r.bottom + 12 + tipH < vh ? r.bottom + 12 : (r.top - 12 - tipH > 0 ? r.top - 12 - tipH : Math.max(8, (vh - tipH) / 2));
+  let tx = Math.min(Math.max(8, r.left), vw - tipW - 8);
+  tip.style.top = ty + "px"; tip.style.left = tx + "px";
+}
+function renderTip() {
+  const st = TOUR[tstep];
   $("tourCount").textContent = "Étape " + (tstep + 1) + " / " + TOUR.length;
+  $("tourTitle").textContent = st.t; $("tourText").textContent = st.x;
+  $("tourHint").hidden = !st.hint; if (st.hint) $("tourHint").textContent = "👉 " + st.hint;
   const d = $("tourDots"); d.replaceChildren();
   TOUR.forEach((_, i) => { const dot = mk("i"); if (i === tstep) dot.className = "on"; d.appendChild(dot); });
   $("tourPrev").style.visibility = tstep === 0 ? "hidden" : "visible";
-  $("tourNext").textContent = tstep === TOUR.length - 1 ? "Commencer" : "Suivant";
+  $("tourNext").textContent = tstep === TOUR.length - 1 ? "Terminer" : (st.act ? "Passer l'étape" : "Suivant");
 }
-function openTour() { tstep = 0; $("tour").hidden = false; renderTour(); }
-function closeTour() { $("tour").hidden = true; store.set("recette-onboarded", "1"); }
-$("tourSkip").addEventListener("click", closeTour);
-$("tourPrev").addEventListener("click", () => { if (tstep > 0) { tstep--; renderTour(); } });
-$("tourNext").addEventListener("click", () => { if (tstep < TOUR.length - 1) { tstep++; renderTour(); } else closeTour(); });
-document.addEventListener("keydown", e => { if (!$("tour").hidden && e.key === "Escape") closeTour(); });
+function tourGoto(i) {
+  tstep = i; tourDetach();
+  const st = TOUR[i];
+  if (st.view) setView(st.view);
+  if (st.enter) st.enter();
+  renderTip();
+  setTimeout(() => {
+    if (!tourOn || tstep !== i) return;
+    tourPos();
+    if (st.sel && st.act) {
+      const el = document.querySelector(st.sel);
+      if (el) { const fn = () => setTimeout(() => { if (tourOn && tstep === i) tourNext(); }, 160); el.addEventListener(st.act, fn, { once: true }); tourAct = { el, ev: st.act, fn }; }
+    }
+  }, 110);
+}
+function tourNext() { if (tstep < TOUR.length - 1) tourGoto(tstep + 1); else endTour(); }
+function tourPrev() { if (tstep > 0) tourGoto(tstep - 1); }
+function openTour() {
+  tourOn = true; $("tour").hidden = false;
+  window.addEventListener("scroll", tourPos, true); window.addEventListener("resize", tourPos);
+  tourTimer = setInterval(() => { if (tourOn) tourPos(); }, 350);
+  tourGoto(0);
+}
+function endTour() {
+  tourOn = false; tourDetach(); $("tour").hidden = true;
+  window.removeEventListener("scroll", tourPos, true); window.removeEventListener("resize", tourPos);
+  if (tourTimer) { clearInterval(tourTimer); tourTimer = null; }
+  store.set("recette-onboarded", "1");
+}
+$("tourSkip").addEventListener("click", endTour);
+$("tourPrev").addEventListener("click", tourPrev);
+$("tourNext").addEventListener("click", tourNext);
+document.addEventListener("keydown", e => { if (tourOn && e.key === "Escape") endTour(); });
 $("mTour").addEventListener("click", () => { $("meMenu").hidden = true; $("meBtn").setAttribute("aria-expanded", "false"); openTour(); });
-function maybeTour() { if (/[?&]tour\b/.test(location.search) || !store.get("recette-onboarded")) setTimeout(openTour, 400); }
+function maybeTour() { if (/[?&]tour\b/.test(location.search) || !store.get("recette-onboarded")) setTimeout(openTour, 500); }
 
 /* ---------- démarrage ---------- */
 let myEmail = "";
