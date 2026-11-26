@@ -606,14 +606,14 @@ function endTour() {
   tourOn = false; tourDetach(); $("tour").hidden = true;
   window.removeEventListener("scroll", tourPos, true); window.removeEventListener("resize", tourPos);
   if (tourTimer) { clearInterval(tourTimer); tourTimer = null; }
-  store.set("recette-onboarded", "1");
+  store.set("recette-tour2", "1");
 }
 $("tourSkip").addEventListener("click", endTour);
 $("tourPrev").addEventListener("click", tourPrev);
 $("tourNext").addEventListener("click", tourNext);
 document.addEventListener("keydown", e => { if (tourOn && e.key === "Escape") endTour(); });
 $("mTour").addEventListener("click", () => { $("meMenu").hidden = true; $("meBtn").setAttribute("aria-expanded", "false"); openTour(); });
-function maybeTour() { if (/[?&]tour\b/.test(location.search) || !store.get("recette-onboarded")) setTimeout(openTour, 500); }
+function maybeTour() { if (/[?&]tour\b/.test(location.search) || !store.get("recette-tour2")) setTimeout(openTour, 500); }
 
 /* ---------- démarrage ---------- */
 let myEmail = "";
