@@ -17,22 +17,25 @@
 
 <!-- Connexion -->
 <div class="gate" id="gate" hidden>
-  <form class="gate-card" id="loginForm" novalidate>
+  <form class="gate-card" id="clientForm" novalidate>
     <div class="brand"><span class="logo">BC</span><span>Be-Cloud</span></div>
     <h1>Recette des contrats de services</h1>
-    <p class="muted">Espace de suivi des tests Mecatherm. Accès sur invitation de Be-Cloud.</p>
-    <label class="fld">Adresse e-mail<input type="email" id="lEmail" autocomplete="username" required></label>
-    <label class="fld">Mot de passe<input type="password" id="lPwd" autocomplete="current-password" required></label>
-    <div class="err" id="lErr" role="alert"></div>
-    <button class="btn" type="submit" id="lBtn">Se connecter</button>
+    <p class="muted">Bienvenue sur l'espace de test Mecatherm. Indiquez votre nom et votre e-mail pour entrer — aucun mot de passe. Votre nom apparaîtra à côté de vos commentaires.</p>
+    <label class="fld">Prénom et nom<input id="cName" maxlength="80" autocomplete="name" required></label>
+    <label class="fld">Adresse e-mail<input type="email" id="cEmail" autocomplete="email" required></label>
+    <div class="err" id="cErr" role="alert"></div>
+    <button class="btn" type="submit" id="cBtn">Entrer</button>
+    <button class="linkbtn" type="button" id="toAdmin" style="align-self:center;margin-top:2px">Vous êtes Be-Cloud ? Se connecter</button>
   </form>
-  <form class="gate-card" id="nameForm" hidden novalidate>
+  <form class="gate-card" id="adminForm" hidden novalidate>
     <div class="brand"><span class="logo">BC</span><span>Be-Cloud</span></div>
-    <h1>Votre nom</h1>
-    <p class="muted">Il apparaît à côté de chacun de vos commentaires et déplacements.</p>
-    <label class="fld">Prénom et nom<input id="nName" maxlength="80" autocomplete="name" required></label>
-    <div class="err" id="nErr" role="alert"></div>
-    <button class="btn" type="submit">Continuer</button>
+    <h1>Connexion Be-Cloud</h1>
+    <p class="muted">Recevez un lien de connexion par e-mail, sans mot de passe. Réservé à l'équipe Be-Cloud pour répondre aux retours.</p>
+    <label class="fld">Votre e-mail Be-Cloud<input type="email" id="aEmail" autocomplete="email" required></label>
+    <div class="err" id="aErr" role="alert"></div>
+    <div class="muted" id="aMsg" hidden style="color:var(--ok)"></div>
+    <button class="btn" type="submit" id="aBtn">Recevoir le lien</button>
+    <button class="linkbtn" type="button" id="toClient" style="align-self:center;margin-top:2px">Retour</button>
   </form>
 </div>
 
@@ -54,7 +57,6 @@
       <button class="av-btn" id="meBtn" type="button" aria-haspopup="menu" aria-expanded="false"><span class="av" id="meAv"></span></button>
       <div class="menu" id="meMenu" role="menu" hidden>
         <div class="menu-h"><b id="meName"></b><span id="meMail"></span><span id="meRole"></span></div>
-        <button type="button" role="menuitem" id="mPwd">Changer mon mot de passe</button>
         <button type="button" role="menuitem" id="mOut">Se déconnecter</button>
       </div>
     </div>
@@ -147,15 +149,6 @@
   <label class="fld">Capture d'écran (facultatif)<input type="file" id="xCap" accept="image/*"></label>
   <div class="err" id="xErr" role="alert"></div>
   <div class="acts"><button class="btn sec" type="button" id="xCancel">Annuler</button><button class="btn" type="submit" id="xOk">Enregistrer</button></div>
-</form></dialog>
-
-<!-- Mot de passe -->
-<dialog id="pwDlg" aria-labelledby="pwT"><form id="pwForm" novalidate>
-  <h3 id="pwT">Changer mon mot de passe</h3>
-  <label class="fld">Nouveau mot de passe (10 caractères minimum)<input type="password" id="pw1" autocomplete="new-password" minlength="10"></label>
-  <label class="fld">Confirmer<input type="password" id="pw2" autocomplete="new-password" minlength="10"></label>
-  <div class="err" id="pwErr" role="alert"></div>
-  <div class="acts"><button class="btn sec" type="button" id="pwCancel">Annuler</button><button class="btn" type="submit">Enregistrer</button></div>
 </form></dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>

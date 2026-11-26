@@ -1,5 +1,8 @@
 -- Recette contrats de services : base Supabase
 -- À exécuter une fois dans Supabase > SQL Editor.
+-- Accès : lien + nom/e-mail, sans mot de passe. Les testeurs ouvrent une session
+-- ANONYME (Authentication > Sign In / Providers > « Allow anonymous sign-ins » activé,
+-- « Allow new users to sign up » désactivé). Be-Cloud se connecte par lien magique (e-mail).
 -- Principe : journal en AJOUT SEUL. Personne (client comme Be-Cloud) ne peut modifier
 -- ni supprimer une entrée depuis le site ; seul le propriétaire du projet Supabase le peut
 -- depuis le tableau de bord.
@@ -20,7 +23,7 @@ create table if not exists public.entries (
   id          uuid primary key default gen_random_uuid(),
   created_at  timestamptz not null default now(),
   user_id     uuid not null default auth.uid() references auth.users (id),
-  user_email  text not null default (auth.jwt() ->> 'email'),
+  user_email  text,  -- e-mail déclaré par la personne (anonyme) ou e-mail Be-Cloud
   auteur      text not null check (char_length(auteur) between 1 and 80),
   kind        text not null check (kind in ('retour', 'statut', 'reponse')),
   cas         text check (char_length(cas) <= 20),
@@ -47,7 +50,6 @@ drop policy if exists "ajout" on public.entries;
 create policy "ajout" on public.entries for insert to authenticated
   with check (
     user_id = auth.uid()
-    and user_email = (auth.jwt() ->> 'email')
     and (kind <> 'reponse' or public.is_admin())
   );
 

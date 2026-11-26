@@ -68,10 +68,10 @@ function supabaseApi() {
   const urls = new Map();
   return {
     async session() { const { data } = await sb.auth.getSession(); return data.session ? data.session.user : null; },
-    async signIn(email, password) { const { data, error } = await sb.auth.signInWithPassword({ email, password }); if (error) throw error; return data.user; },
+    async signInAnon() { const { data, error } = await sb.auth.signInAnonymously(); if (error) throw error; return data.user; },
+    async sendMagicLink(email) { const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href.split("#")[0], shouldCreateUser: false } }); if (error) throw error; },
     async signOut() { await sb.auth.signOut(); },
-    async setName(full_name) { const { data, error } = await sb.auth.updateUser({ data: { full_name } }); if (error) throw error; return data.user; },
-    async setPassword(password) { const { error } = await sb.auth.updateUser({ password }); if (error) throw error; },
+    async setProfile(full_name, email) { const { data, error } = await sb.auth.updateUser({ data: { full_name, email } }); if (error) throw error; return data.user; },
     async isAdmin() { const { data } = await sb.rpc("is_admin"); return data === true; },
     async list() {
       const out = []; const step = 1000;
@@ -106,13 +106,13 @@ function demoApi() {
   const u = { id: "demo-user", email: "demo@exemple.fr", user_metadata: { full_name: store.get("demo-name") || "" } };
   return {
     async session() { return sessionStorage.getItem("demo-in") ? u : null; },
-    async signIn() { sessionStorage.setItem("demo-in", "1"); return u; },
+    async signInAnon() { sessionStorage.setItem("demo-in", "1"); return u; },
+    async sendMagicLink() { sessionStorage.setItem("demo-in", "1"); },
     async signOut() { sessionStorage.removeItem("demo-in"); },
-    async setName(n) { store.set("demo-name", n); u.user_metadata.full_name = n; return u; },
-    async setPassword() {},
+    async setProfile(n, e) { store.set("demo-name", n); u.user_metadata.full_name = n; u.user_metadata.email = e; return u; },
     async isAdmin() { return /admin/.test(location.search); },
     async list() { return rows.slice(); },
-    async insert(r) { const row = { ...r, id: crypto.randomUUID(), created_at: new Date().toISOString(), user_id: u.id, user_email: u.email }; rows.push(row); save(); return row; },
+    async insert(r) { const row = { ...r, id: crypto.randomUUID(), created_at: new Date().toISOString(), user_id: u.id, user_email: (u.user_metadata && u.user_metadata.email) || u.email }; rows.push(row); save(); return row; },
     async upload(f) { return URL.createObjectURL(f); },
     async url(p) { return p; },
     subscribe(_, onState) { onState(true); }
@@ -120,7 +120,7 @@ function demoApi() {
 }
 
 async function add(row) {
-  const r = await api.insert({ ...row, auteur: myName });
+  const r = await api.insert({ ...row, auteur: myName, user_email: myEmail || null });
   if (addLocal(r)) renderAll();
   return r;
 }
@@ -498,39 +498,47 @@ $("onlyOpen").addEventListener("change", e => { onlyOpen = e.target.checked; ren
 $("meBtn").addEventListener("click", () => { const m = $("meMenu"); m.hidden = !m.hidden; $("meBtn").setAttribute("aria-expanded", String(!m.hidden)); });
 document.addEventListener("click", e => { if (!$("meMenu").hidden && !e.target.closest(".me")) { $("meMenu").hidden = true; $("meBtn").setAttribute("aria-expanded", "false"); } });
 $("mOut").addEventListener("click", async () => { await api.signOut(); location.hash = ""; location.reload(); });
-$("mPwd").addEventListener("click", () => { $("meMenu").hidden = true; $("pwForm").reset(); $("pwErr").textContent = ""; $("pwDlg").showModal(); });
-$("pwCancel").addEventListener("click", () => $("pwDlg").close());
-$("pwForm").addEventListener("submit", async e => {
-  e.preventDefault();
-  const a = $("pw1").value, b = $("pw2").value;
-  if (a.length < 10) { $("pwErr").textContent = "10 caractères minimum."; return; }
-  if (a !== b) { $("pwErr").textContent = "Les deux saisies sont différentes."; return; }
-  try { await api.setPassword(a); $("pwDlg").close(); toast("Mot de passe modifié"); } catch (err) { $("pwErr").textContent = (err && err.message) || "Modification impossible."; }
-});
 
 /* ---------- démarrage ---------- */
-function showGate(which) { $("gate").hidden = false; $("app").hidden = true; $("loginForm").hidden = which !== "login"; $("nameForm").hidden = which !== "name"; (which === "login" ? $("lEmail") : $("nName")).focus(); }
-$("loginForm").addEventListener("submit", async e => {
+let myEmail = "";
+function showGate(which) { $("gate").hidden = false; $("app").hidden = true; $("clientForm").hidden = which !== "client"; $("adminForm").hidden = which !== "admin"; ($(which === "admin" ? "aEmail" : "cName")).focus(); }
+const validMail = e => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e);
+$("toAdmin").addEventListener("click", () => { $("aErr").textContent = ""; $("aMsg").hidden = true; showGate("admin"); });
+$("toClient").addEventListener("click", () => { $("cErr").textContent = ""; showGate("client"); });
+$("clientForm").addEventListener("submit", async e => {
   e.preventDefault();
-  const email = $("lEmail").value.trim(), pwd = $("lPwd").value;
-  if (!email || !pwd) { $("lErr").textContent = "Saisissez votre adresse et votre mot de passe."; return; }
-  $("lBtn").disabled = true; $("lErr").textContent = "";
-  try { const u = await api.signIn(email, pwd); $("lPwd").value = ""; await start(u); }
-  catch (err) { $("lErr").textContent = /invalid/i.test((err && err.message) || "") ? "Adresse ou mot de passe incorrect." : "Connexion impossible pour l'instant. Réessayez."; }
-  finally { $("lBtn").disabled = false; }
+  const name = $("cName").value.trim(), email = $("cEmail").value.trim();
+  if (name.length < 3) { $("cErr").textContent = "Indiquez votre prénom et votre nom."; return; }
+  if (!validMail(email)) { $("cErr").textContent = "Indiquez une adresse e-mail valide."; return; }
+  $("cBtn").disabled = true; $("cErr").textContent = "";
+  try {
+    let u = await api.session().catch(() => null);
+    if (!u) u = await api.signInAnon();
+    u = await api.setProfile(name, email);
+    store.set("recette-nom", name);
+    await start(u);
+  } catch (err) { $("cErr").textContent = "Connexion impossible pour l'instant. Réessayez."; $("cBtn").disabled = false; }
 });
-$("nameForm").addEventListener("submit", async e => {
-  e.preventDefault(); const n = $("nName").value.trim();
-  if (n.length < 3) { $("nErr").textContent = "Indiquez votre prénom et votre nom."; return; }
-  try { const u = await api.setName(n); await start(u); } catch (err) { $("nErr").textContent = "Enregistrement impossible. Réessayez."; }
+$("adminForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const email = $("aEmail").value.trim();
+  if (!validMail(email)) { $("aErr").textContent = "Indiquez votre e-mail."; return; }
+  $("aBtn").disabled = true; $("aErr").textContent = "";
+  try { await api.sendMagicLink(email); $("aMsg").hidden = false; $("aMsg").textContent = "Lien envoyé. Ouvrez l'e-mail reçu pour vous connecter (pensez aux indésirables)."; }
+  catch (err) { $("aErr").textContent = "Envoi impossible pour l'instant. Réessayez dans un moment."; }
+  finally { $("aBtn").disabled = false; }
 });
 
 async function start(user) {
-  me = user; myName = (user.user_metadata && user.user_metadata.full_name || "").trim();
-  if (!myName) { showGate("name"); return; }
+  me = user;
+  const md = user.user_metadata || {};
+  myName = (md.full_name || "").trim();
+  if (!myName && user.email) myName = user.email.split("@")[0];
+  myEmail = (md.email || user.email || "").trim();
+  if (!myName) { showGate("client"); return; }
   $("gate").hidden = true; $("app").hidden = false;
   $("meAv").textContent = initials(myName); $("meAv").style.background = hue(myName);
-  $("meName").textContent = myName; $("meMail").textContent = user.email || "";
+  $("meName").textContent = myName; $("meMail").textContent = myEmail;
   admin = await api.isAdmin().catch(() => false);
   $("meRole").textContent = admin ? "Administrateur Be-Cloud" : "Testeur";
   try { (await api.list()).forEach(addLocal); }
@@ -547,8 +555,8 @@ buildEx();
   const demo = /[?&]demo\b/.test(location.search);
   if (demo) api = demoApi();
   else if (CFG.supabaseUrl && CFG.supabaseAnonKey && window.supabase) api = supabaseApi();
-  else { showGate("login"); $("lErr").textContent = "Le site est en cours de mise en service : la connexion sera ouverte très prochainement."; $("lBtn").disabled = true; return; }
+  else { showGate("client"); $("cErr").textContent = "Le site est en cours de mise en service : l'accès sera ouvert très prochainement."; $("cBtn").disabled = true; return; }
   const u = await api.session().catch(() => null);
-  if (u) start(u); else showGate("login");
+  if (u && ((u.user_metadata && u.user_metadata.full_name) || u.email)) start(u); else showGate("client");
 })();
 })();

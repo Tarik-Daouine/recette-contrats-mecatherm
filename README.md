@@ -4,7 +4,7 @@ Espace de suivi de la recette : tableau des cas de test (À tester, En cours, Va
 
 - Site statique publié avec GitHub Pages.
 - Retours, déplacements de cartes et captures stockés dans **Supabase** (journal en ajout seul : rien n'est modifiable ni supprimable depuis le site).
-- Accès par compte (adresse + mot de passe) créé par Be-Cloud ; pas d'inscription libre.
+- Accès **sans mot de passe** : les testeurs ouvrent le lien, saisissent leur nom et leur e-mail (session anonyme). Be-Cloud se connecte par **lien magique** reçu par e-mail pour répondre aux retours.
 
 ## Fichiers
 
@@ -21,13 +21,15 @@ Espace de suivi de la recette : tableau des cas de test (À tester, En cours, Va
 1. Créer un projet Supabase (offre gratuite), région Europe.
 2. **SQL Editor** : exécuter `supabase/schema.sql`, puis ajouter l'administrateur Be-Cloud :
    `insert into public.admins (email) values ('adresse@domaine');`
-3. **Authentication > Sign In / Providers** : désactiver « Allow new users to sign up » ; garder Email activé.
+3. **Authentication > Sign In / Providers** : activer « Allow anonymous sign-ins », désactiver « Allow new users to sign up », garder Email activé.
 4. **Authentication > URL Configuration** : Site URL = l'adresse GitHub Pages du site.
 5. **Project Settings > API** : copier l'URL du projet et la clé `anon` / publishable dans `config.js`, puis pousser.
+6. Déclarer l'administrateur Be-Cloud : d'abord créer son accès (ci-dessous), puis en SQL `insert into public.admins (email) values ('adresse@domaine');`.
 
 ## Donner un accès
 
-**Authentication > Users > Add user > Create new user** : adresse, mot de passe provisoire, cocher « Auto Confirm User ». Transmettre le mot de passe par un canal séparé ; la personne le change ensuite depuis son menu (avatar en haut à droite).
+- **Testeurs (client)** : rien à créer. On partage simplement le lien du site ; chaque personne saisit son nom et son e-mail à l'ouverture.
+- **Be-Cloud (répondre aux retours)** : **Authentication > Users > Add user > Send invitation** vers l'adresse Be-Cloud (crée le compte sans mot de passe). Une fois l'invitation acceptée et l'adresse ajoutée dans `public.admins`, se connecter ensuite via « Vous êtes Be-Cloud ? Se connecter » sur le site (lien magique).
 
 ## Mettre à jour le contenu
 
