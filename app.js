@@ -668,7 +668,10 @@ $("tourNext").addEventListener("click", tourNext);
 document.addEventListener("keydown", e => { if (tourOn && e.key === "Escape") endTour(); });
 $("mTour").addEventListener("click", () => { $("meMenu").hidden = true; $("meBtn").setAttribute("aria-expanded", "false"); openTour(); });
 $("helpBtn").addEventListener("click", openTour);
-function maybeTour() { if (/[?&]tour\b/.test(location.search) || !store.get("recette-tour2")) setTimeout(openTour, 500); }
+// TOUR_ONCE = true : le tuto ne s'affiche qu'à la première visite (à remettre avant l'envoi aux clients).
+// TOUR_ONCE = false : il s'affiche à chaque rechargement (phase de test). Le bouton « ? » le relance toujours.
+const TOUR_ONCE = false;
+function maybeTour() { if (/[?&]notour\b/.test(location.search)) return; if (!TOUR_ONCE || /[?&]tour\b/.test(location.search) || !store.get("recette-tour2")) setTimeout(openTour, 500); }
 
 /* ---------- démarrage ---------- */
 let myEmail = "";
