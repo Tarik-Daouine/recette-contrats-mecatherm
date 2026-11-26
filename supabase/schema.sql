@@ -1,8 +1,9 @@
 -- Recette contrats de services : base Supabase
 -- À exécuter une fois dans Supabase > SQL Editor.
 -- Accès : lien + nom/e-mail, sans mot de passe. Les testeurs ouvrent une session
--- ANONYME (Authentication > Sign In / Providers > « Allow anonymous sign-ins » activé,
--- « Allow new users to sign up » désactivé). Be-Cloud se connecte par lien magique (e-mail).
+-- ANONYME (Authentication > Sign In / Providers : « Allow anonymous sign-ins » activé.
+-- « Allow new users to sign up » doit rester activé — une session anonyme compte comme
+-- une inscription). Be-Cloud se connecte par lien magique (e-mail).
 -- Principe : journal en AJOUT SEUL. Personne (client comme Be-Cloud) ne peut modifier
 -- ni supprimer une entrée depuis le site ; seul le propriétaire du projet Supabase le peut
 -- depuis le tableau de bord.

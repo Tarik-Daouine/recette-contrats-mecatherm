@@ -21,7 +21,7 @@ Espace de suivi de la recette : tableau des cas de test (À tester, En cours, Va
 1. Créer un projet Supabase (offre gratuite), région Europe.
 2. **SQL Editor** : exécuter `supabase/schema.sql`, puis ajouter l'administrateur Be-Cloud :
    `insert into public.admins (email) values ('adresse@domaine');`
-3. **Authentication > Sign In / Providers** : activer « Allow anonymous sign-ins », désactiver « Allow new users to sign up », garder Email activé.
+3. **Authentication > Sign In / Providers** : activer « Allow anonymous sign-ins » ; laisser « Allow new users to sign up » activé (une session anonyme compte comme une inscription) ; garder Email activé. Le site n'expose aucune inscription par mot de passe.
 4. **Authentication > URL Configuration** : Site URL = l'adresse GitHub Pages du site.
 5. **Project Settings > API** : copier l'URL du projet et la clé `anon` / publishable dans `config.js`, puis pousser.
 6. Déclarer l'administrateur Be-Cloud : d'abord créer son accès (ci-dessous), puis en SQL `insert into public.admins (email) values ('adresse@domaine');`.
