@@ -536,6 +536,33 @@ $("meBtn").addEventListener("click", () => { const m = $("meMenu"); m.hidden = !
 document.addEventListener("click", e => { if (!$("meMenu").hidden && !e.target.closest(".me")) { $("meMenu").hidden = true; $("meBtn").setAttribute("aria-expanded", "false"); } });
 $("mOut").addEventListener("click", async () => { await api.signOut(); location.hash = ""; location.reload(); });
 
+/* ---------- tutoriel d'accueil ---------- */
+const TOUR = [
+  { ico: "👋", t: "Bienvenue", x: "Cet espace sert à tester la gestion des contrats de services et à nous remonter vos retours. 1 minute pour tout comprendre." },
+  { ico: "🗂️", t: "Le tableau", x: "Chaque carte est un cas à tester (C1, T1, D1…). Les colonnes suivent l'avancement : À tester, En cours, Validé, Anomalie. Glissez une carte d'une colonne à l'autre." },
+  { ico: "📝", t: "Tester un cas", x: "Ouvrez une carte : vous y voyez l'action à faire et le résultat attendu, puis vous publiez votre retour — Conforme, Anomalie ou Question — avec une capture si besoin." },
+  { ico: "📘", t: "Cahier des charges", x: "L'onglet Cahier des charges reprend votre besoin, exigence par exigence, avec son statut et les cas de test qui la vérifient." },
+  { ico: "💬", t: "Vos retours sont gardés", x: "Tout ce que vous notez est enregistré dans le Journal des retours, et Be-Cloud vous y répond. Rien ne se perd. C'est parti !" }
+];
+let tstep = 0;
+function renderTour() {
+  const s = TOUR[tstep];
+  $("tourIco").textContent = s.ico; $("tourTitle").textContent = s.t; $("tourText").textContent = s.x;
+  $("tourCount").textContent = "Étape " + (tstep + 1) + " / " + TOUR.length;
+  const d = $("tourDots"); d.replaceChildren();
+  TOUR.forEach((_, i) => { const dot = mk("i"); if (i === tstep) dot.className = "on"; d.appendChild(dot); });
+  $("tourPrev").style.visibility = tstep === 0 ? "hidden" : "visible";
+  $("tourNext").textContent = tstep === TOUR.length - 1 ? "Commencer" : "Suivant";
+}
+function openTour() { tstep = 0; $("tour").hidden = false; renderTour(); }
+function closeTour() { $("tour").hidden = true; store.set("recette-onboarded", "1"); }
+$("tourSkip").addEventListener("click", closeTour);
+$("tourPrev").addEventListener("click", () => { if (tstep > 0) { tstep--; renderTour(); } });
+$("tourNext").addEventListener("click", () => { if (tstep < TOUR.length - 1) { tstep++; renderTour(); } else closeTour(); });
+document.addEventListener("keydown", e => { if (!$("tour").hidden && e.key === "Escape") closeTour(); });
+$("mTour").addEventListener("click", () => { $("meMenu").hidden = true; $("meBtn").setAttribute("aria-expanded", "false"); openTour(); });
+function maybeTour() { if (/[?&]tour\b/.test(location.search) || !store.get("recette-onboarded")) setTimeout(openTour, 400); }
+
 /* ---------- démarrage ---------- */
 let myEmail = "";
 function showGate(which) { $("gate").hidden = false; $("app").hidden = true; $("clientForm").hidden = which !== "client"; $("adminForm").hidden = which !== "admin"; ($(which === "admin" ? "aEmail" : "cName")).focus(); }
@@ -585,6 +612,7 @@ async function start(user) {
   setView(saved && ["board", "list", "ex", "journal"].includes(saved) ? saved : "board");
   renderAll();
   route();
+  maybeTour();
 }
 
 buildEx();

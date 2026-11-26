@@ -57,6 +57,7 @@
       <button class="av-btn" id="meBtn" type="button" aria-haspopup="menu" aria-expanded="false"><span class="av" id="meAv"></span></button>
       <div class="menu" id="meMenu" role="menu" hidden>
         <div class="menu-h"><b id="meName"></b><span id="meMail"></span><span id="meRole"></span></div>
+        <button type="button" role="menuitem" id="mTour">Revoir le tutoriel</button>
         <button type="button" role="menuitem" id="mOut">Se déconnecter</button>
       </div>
     </div>
@@ -169,6 +170,24 @@
   <div class="err" id="xErr" role="alert"></div>
   <div class="acts"><button class="btn sec" type="button" id="xCancel">Annuler</button><button class="btn" type="submit" id="xOk">Enregistrer</button></div>
 </form></dialog>
+
+<!-- Tutoriel d'accueil -->
+<div class="tour" id="tour" hidden>
+  <div class="tour-card" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+    <button class="tour-skip" id="tourSkip" type="button">Passer</button>
+    <div class="tour-ico" id="tourIco" aria-hidden="true"></div>
+    <div class="tour-step" id="tourCount"></div>
+    <h2 id="tourTitle"></h2>
+    <p id="tourText"></p>
+    <div class="tour-foot">
+      <div class="tour-dots" id="tourDots"></div>
+      <div class="tour-nav">
+        <button class="btn sec" id="tourPrev" type="button">Précédent</button>
+        <button class="btn" id="tourNext" type="button">Suivant</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
