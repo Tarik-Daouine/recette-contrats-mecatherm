@@ -54,6 +54,16 @@ function addLocal(row) {
   entries.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
   return true;
 }
+function updateLocal(row) {
+  if (!row) return; if (!byId.has(row.id)) { if (addLocal(row)) renderAll(); return; }
+  byId.set(row.id, row); const i = entries.findIndex(e => e.id === row.id); if (i >= 0) entries[i] = row;
+  renderAll();
+}
+function removeLocal(id) {
+  if (!byId.has(id)) return; byId.delete(id);
+  const i = entries.findIndex(e => e.id === id); if (i >= 0) entries.splice(i, 1);
+  renderAll();
+}
 const colOf = cas => { for (let i = entries.length - 1; i >= 0; i--) { const e = entries[i]; if (e.kind === "statut" && e.cas === cas) return e.col; } return "atester"; };
 const retours = () => entries.filter(e => e.kind === "retour");
 const repliesOf = id => entries.filter(e => e.kind === "reponse" && e.parent === id);
@@ -82,6 +92,8 @@ function supabaseApi() {
       return out;
     },
     async insert(row) { const { data, error } = await sb.from("entries").insert(row).select().single(); if (error) throw error; return data; },
+    async update(id, patch) { const { data, error } = await sb.from("entries").update(patch).eq("id", id).select().single(); if (error) throw error; return data; },
+    async remove(id) { const { error } = await sb.from("entries").delete().eq("id", id); if (error) throw error; },
     async upload(file) {
       const safe = file.name.normalize("NFD").replace(/[^\w.-]+/g, "_").slice(-60);
       const path = me.id + "/" + Date.now().toString(36) + "-" + safe;
@@ -93,8 +105,8 @@ function supabaseApi() {
       const { data, error } = await sb.storage.from("captures").createSignedUrl(path, 3600);
       if (error) return null; urls.set(path, data.signedUrl); return data.signedUrl;
     },
-    subscribe(onRow, onState) {
-      sb.channel("entries").on("postgres_changes", { event: "INSERT", schema: "public", table: "entries" }, p => onRow(p.new))
+    subscribe(onChange, onState) {
+      sb.channel("entries").on("postgres_changes", { event: "*", schema: "public", table: "entries" }, p => onChange(p.eventType, p.new, p.old))
         .subscribe(s => onState(s === "SUBSCRIBED"));
     }
   };
@@ -113,6 +125,8 @@ function demoApi() {
     async isAdmin() { return /admin/.test(location.search); },
     async list() { return rows.slice(); },
     async insert(r) { const row = { ...r, id: crypto.randomUUID(), created_at: new Date().toISOString(), user_id: u.id, user_email: (u.user_metadata && u.user_metadata.email) || u.email }; rows.push(row); save(); return row; },
+    async update(id, patch) { const row = rows.find(x => x.id === id); if (row) Object.assign(row, patch); save(); return row; },
+    async remove(id) { const i = rows.findIndex(x => x.id === id); if (i >= 0) rows.splice(i, 1); save(); },
     async upload(f) { return URL.createObjectURL(f); },
     async url(p) { return p; },
     subscribe(_, onState) { onState(true); }
@@ -279,6 +293,45 @@ function entryEl(r, withCtx) {
       f.append(sel, ta, ok); b.appendChild(f); ta.focus();
     });
     b.appendChild(open);
+  }
+  if (me && me.id && r.user_id === me.id) {
+    const own = mk("div", "own");
+    const edit = mk("button", "linkbtn", "✎ Modifier"); edit.type = "button";
+    const del = mk("button", "linkbtn danger", "🗑 Supprimer"); del.type = "button";
+    del.addEventListener("click", async () => {
+      if (!confirm("Supprimer définitivement votre retour ? Cette action est irréversible.")) return;
+      del.disabled = true;
+      try { await api.remove(r.id); removeLocal(r.id); toast("Retour supprimé"); }
+      catch (e) { toast(errMsg(e)); del.disabled = false; }
+    });
+    edit.addEventListener("click", () => {
+      own.hidden = true;
+      const f = mk("form", "editret");
+      const seg = mk("div", "seg");
+      [["ok", "Conforme"], ["anomalie", "Anomalie"], ["question", "Question"], ["remarque", "Commentaire"]].forEach(([v, l]) => {
+        const lab = mk("label"); const inp = document.createElement("input"); inp.type = "radio"; inp.name = "er_" + r.id; inp.value = v; if (v === r.statut) inp.checked = true; lab.append(inp, mk("span", null, l)); seg.appendChild(lab);
+      });
+      const grav = mk("select", "egrav"); [["bloquante", "Bloquante"], ["majeure", "Majeure"], ["mineure", "Mineure"]].forEach(([v, l]) => { const o = mk("option", null, l); o.value = v; grav.appendChild(o); });
+      grav.value = r.gravite || "majeure"; grav.hidden = r.statut !== "anomalie";
+      seg.addEventListener("change", () => { grav.hidden = (f.querySelector("input:checked") || {}).value !== "anomalie"; });
+      const ta = mk("textarea"); ta.value = r.commentaire || ""; ta.maxLength = 4000;
+      const cancel = mk("button", "btn sec sm", "Annuler"); cancel.type = "button"; cancel.addEventListener("click", () => { f.replaceWith(own); own.hidden = false; });
+      const save = mk("button", "btn sm", "Enregistrer"); save.type = "submit";
+      const rowb = mk("div", "editrow"); rowb.append(cancel, save);
+      f.append(seg, grav, ta, rowb);
+      f.addEventListener("submit", async ev => {
+        ev.preventDefault();
+        const st = (f.querySelector("input:checked") || {}).value || r.statut, com = ta.value.trim();
+        if (!com && st !== "ok") { ta.focus(); return; }
+        save.disabled = true;
+        const patch = { statut: st, gravite: st === "anomalie" ? grav.value : null, commentaire: com || null };
+        try { const up = await api.update(r.id, patch); updateLocal(up || Object.assign({}, r, patch)); toast("Retour modifié"); }
+        catch (e) { toast(errMsg(e)); save.disabled = false; }
+      });
+      b.appendChild(f); ta.focus();
+    });
+    own.append(edit, del);
+    b.appendChild(own);
   }
   box.appendChild(b);
   return box;
@@ -544,9 +597,10 @@ const TOUR = [
   { t: "Dites ce que ça donne", x: "Après avoir testé, indiquez le résultat. Choisissez par exemple « Anomalie » si quelque chose cloche, ou « Conforme » si tout va bien.", enter: tourOpenCard, sel: "#dKind", act: "change", hint: "Choisissez un résultat" },
   { t: "Décrivez votre retour", x: "Écrivez ici ce que vous avez fait, ce qui était attendu et ce qui s'est passé. Une capture d'écran est possible. Vous cliquerez « Publier » quand c'est prêt — pas besoin maintenant.", sel: "#dCom", act: "click", hint: "Cliquez dans la zone de texte" },
   { t: "Allez au cahier des charges", x: "On ferme la fiche. Cliquez maintenant sur l'onglet « Cahier des charges » en haut.", enter: tourCloseCard, sel: '.tabs a[data-v="ex"]', act: "click", hint: "Cliquez sur l'onglet" },
-  { t: "Votre besoin, point par point", x: "Chaque exigence de votre cahier des charges est ici, avec son statut et les cas de test qui la vérifient (cliquables). C'est la preuve que votre besoin est couvert.", view: "ex", sel: ".coverbar" },
+  { t: "Votre besoin, point par point", x: "Chaque exigence de votre cahier des charges est ici, avec son statut et les cas de test qui la vérifient. C'est la preuve que votre besoin est couvert.", view: "ex", sel: ".coverbar" },
+  { t: "Un retour d'où vous voulez", x: "Vous pouvez faire un retour depuis le Tableau, la Liste ou ici : chaque exigence a son bouton « Retour », et les cas (C1, T1…) sont cliquables pour les ouvrir directement.", view: "ex", sel: "#exBody .rcell .btn" },
   { t: "Le journal des retours", x: "Dernier onglet : cliquez sur « Journal des retours ».", sel: '.tabs a[data-v="journal"]', act: "click", hint: "Cliquez sur l'onglet" },
-  { t: "Tout est gardé", x: "Tous vos retours arrivent ici et Be-Cloud vous répond. Rien ne se perd. Vous êtes prêt à tester !", view: "journal" }
+  { t: "Tout est gardé — et modifiable", x: "Tous vos retours arrivent ici et Be-Cloud vous répond. Vous pouvez modifier ou supprimer les vôtres (✎ / 🗑). Et le bouton « ? » en haut relance ce tuto quand vous voulez. Vous êtes prêt !", view: "journal" }
 ];
 function tourOpenCard() { if ($("drawer").hidden) { setView("board"); openDrawer(firstCas()); } }
 function tourCloseCard() { if (!$("drawer").hidden) closeDrawer(); }
@@ -613,6 +667,7 @@ $("tourPrev").addEventListener("click", tourPrev);
 $("tourNext").addEventListener("click", tourNext);
 document.addEventListener("keydown", e => { if (tourOn && e.key === "Escape") endTour(); });
 $("mTour").addEventListener("click", () => { $("meMenu").hidden = true; $("meBtn").setAttribute("aria-expanded", "false"); openTour(); });
+$("helpBtn").addEventListener("click", openTour);
 function maybeTour() { if (/[?&]tour\b/.test(location.search) || !store.get("recette-tour2")) setTimeout(openTour, 500); }
 
 /* ---------- démarrage ---------- */
@@ -659,7 +714,11 @@ async function start(user) {
   $("meRole").textContent = admin ? "Administrateur Be-Cloud" : "Testeur";
   try { (await api.list()).forEach(addLocal); }
   catch (e) { toast("Les retours n'ont pas pu être chargés. Rechargez la page."); }
-  api.subscribe(row => { if (addLocal(row)) renderAll(); }, on => $("live").classList.toggle("on", on));
+  api.subscribe((type, row, old) => {
+    if (type === "DELETE") removeLocal(old && old.id);
+    else if (type === "UPDATE") updateLocal(row);
+    else if (addLocal(row)) renderAll();
+  }, on => $("live").classList.toggle("on", on));
   const saved = store.get("recette-view");
   setView(saved && ["board", "list", "ex", "journal"].includes(saved) ? saved : "board");
   renderAll();

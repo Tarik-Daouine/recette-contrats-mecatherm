@@ -41,8 +41,8 @@ create index if not exists entries_created on public.entries (created_at);
 
 alter table public.entries enable row level security;
 revoke all on public.entries from anon;
-revoke update, delete, truncate on public.entries from authenticated;
-grant select, insert on public.entries to authenticated;
+revoke truncate on public.entries from authenticated;
+grant select, insert, update, delete on public.entries to authenticated;
 
 drop policy if exists "lecture" on public.entries;
 create policy "lecture" on public.entries for select to authenticated using (true);
@@ -53,6 +53,15 @@ create policy "ajout" on public.entries for insert to authenticated
     user_id = auth.uid()
     and (kind <> 'reponse' or public.is_admin())
   );
+
+-- Chacun modifie ou supprime UNIQUEMENT ses propres entrées (pas les autres, pas l'admin).
+drop policy if exists "modif" on public.entries;
+create policy "modif" on public.entries for update to authenticated
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+drop policy if exists "suppr" on public.entries;
+create policy "suppr" on public.entries for delete to authenticated
+  using (user_id = auth.uid());
 
 -- mises à jour en direct
 do $$ begin
