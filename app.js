@@ -641,11 +641,11 @@ function tourGoto(i) {
   renderTip();
   setTimeout(() => {
     if (!tourOn || tstep !== i) return;
+    const el = st.sel ? document.querySelector(st.sel) : null;
+    if (el && el.scrollIntoView) { try { el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }); } catch (e) { el.scrollIntoView(); } }
     tourPos();
-    if (st.sel && st.act) {
-      const el = document.querySelector(st.sel);
-      if (el) { const fn = () => setTimeout(() => { if (tourOn && tstep === i) tourNext(); }, 160); el.addEventListener(st.act, fn, { once: true }); tourAct = { el, ev: st.act, fn }; }
-    }
+    setTimeout(() => { if (tourOn && tstep === i) tourPos(); }, 360);
+    if (el && st.act) { const fn = () => setTimeout(() => { if (tourOn && tstep === i) tourNext(); }, 160); el.addEventListener(st.act, fn, { once: true }); tourAct = { el, ev: st.act, fn }; }
   }, 110);
 }
 function tourNext() { if (tstep < TOUR.length - 1) tourGoto(tstep + 1); else endTour(); }
